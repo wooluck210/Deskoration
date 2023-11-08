@@ -47,7 +47,7 @@ styled-components에서 position을 설정 했을때, 마커의 위치가 변경
 인라인 스타일 사용으로 새로운 클래스 이름 생성을 피하여 DOM 삽입 과정을 거치지 않아 브라우저가 CSSOM을 업데이트하는 과정을 생략하여 스타일 계산 시간을 절약하고 메모리의 사용량을 줄여 플리커링 현상을 해결했습니다.
 ![해결후](https://github.com/FRONTENDSCHOOL7/final-14-Deskoration/assets/108519185/bf808ba9-690b-49dc-967b-a1675ab9474e)
 
-## 앞으로의 리팩토링
+## 앞으로의 리팩토링 (12월 중순)
 - 시맨틱 마크업, 반응형 웹
 - 라이브러리 (react-query, react-hook-form)
 - API (지도)
