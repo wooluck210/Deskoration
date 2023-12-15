@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import GradientButton from '../../components/GradientButton/GradientButton';
+import { useForm, useWatch } from 'react-hook-form';
+
+import AddMap from './AddMap/AddMap';
 import { Input, SelectInput } from '../../components/Input/Input';
-import { WarningMsg } from '../../components/Input/WarningMsg';
 
 import * as S from './RegisterForm.styled';
+import GradientButton from '../../components/GradientButton/GradientButton';
 
 const RegisterForm = ({
     productItems,
@@ -15,22 +17,44 @@ const RegisterForm = ({
     const navigate = useNavigate();
     const location = useLocation();
 
-    const showProduct = location.pathname.includes('/detailPost');
+    const currentPath = window.location.pathname;
+    const editProductItem = location.state?.editProduct;
+    const editProductItemDetail = editProductItem?.detail;
 
-    const defaultProductItem = location.state?.defaultProductItem;
+    const [searchKeyword, setSearchKeyword] = useState(
+        editProductItemDetail?.store?.name,
+    );
+    const [selectedPlace, setSelectedPlace] = useState(
+        editProductItemDetail?.store,
+    );
 
-    const defaultProductItemDetail = defaultProductItem?.detail;
+    const {
+        register,
+        handleSubmit,
+        setFocus,
+        setValue,
+        setError,
+        clearErrors,
+        control,
+        trigger,
+        formState: { errors, isSubmitted },
+    } = useForm({
+        mode: 'onSubmit',
+        defaultValues: {
+            category: '책상',
+            productName: null,
+            price: null,
+            store: null,
+            link: null,
+        },
+    });
 
-    const formRef = useRef(null);
-    const categoryRef = useRef(null);
-    const productNameRef = useRef(null);
-    const priceRef = useRef(null);
-    const storeRef = useRef(null);
-    const linkRef = useRef(null);
+    const storeInput = useWatch({ name: 'store', control });
+    const linkInput = useWatch({
+        name: 'link',
+        control,
+    });
 
-    const [warnCategory, setWarnCategory] = useState(false);
-    const [warnProductName, setWarnProductName] = useState(false);
-    const [warnPrice, setWarnPrice] = useState(false);
     const options = [
         '책상',
         '의자',
@@ -43,34 +67,41 @@ const RegisterForm = ({
         '액세서리',
     ];
 
-    const submitProduct = event => {
-        event.preventDefault();
+    useEffect(() => {
+        if (isSubmitted) {
+            trigger(['store', 'link']);
+        }
+    }, [storeInput, linkInput, isSubmitted, trigger]);
 
-        const categoryValue = categoryRef.current.value;
-        const productNameValue = productNameRef.current.value;
-        const priceValue = priceRef.current.value;
+    useEffect(() => {
+        setFocus('productName');
+    }, [setFocus]);
 
-        // input에 입력 값이 없을 경우 submit이 되지 않는다.
-        if (!categoryValue || !productNameValue || !priceValue) {
-            !categoryValue ? setWarnCategory(true) : setWarnCategory(false);
-            !productNameValue
-                ? setWarnProductName(true)
-                : setWarnProductName(false);
-            !priceValue ? setWarnPrice(true) : setWarnPrice(false);
-        } else if (productItems.length <= 6) {
+    useEffect(() => {
+        if (editProductItemDetail) {
+            setValue('category', editProductItemDetail?.category);
+            setValue('productName', editProductItemDetail?.productName);
+            setValue('price', editProductItemDetail?.price);
+            setValue('store', editProductItemDetail?.store?.name);
+            setValue('link', editProductItemDetail?.link);
+        }
+    }, [editProductItemDetail, setValue]);
+
+    const submitProduct = data => {
+        if (productItems.length <= 6) {
             const itemIndex = productItems.findIndex(
-                item => item.detail.id === defaultProductItemDetail?.id,
+                item => item.detail.id === editProductItemDetail?.id,
             );
 
             const newID = () => Math.random().toString(36).substring(2, 16);
 
             const newData = {
-                category: categoryValue,
-                productName: productNameValue,
-                price: priceValue,
-                store: storeRef.current.value,
-                link: linkRef.current.value,
-                id: defaultProductItem ? defaultProductItemDetail.id : newID(),
+                category: data.category,
+                productName: data.productName,
+                price: data.price,
+                store: selectedPlace,
+                link: data.link,
+                id: editProductItemDetail ? editProductItemDetail.id : newID(),
             };
 
             if (itemIndex !== -1) {
@@ -84,100 +115,136 @@ const RegisterForm = ({
                 setProductItems(prev => [
                     ...prev,
                     {
-                        marker: defaultProductItem
-                            ? defaultProductItem.marker
+                        marker: editProductItemDetail
+                            ? editProductItemDetail.marker
                             : offset,
                         detail: newData,
                     },
                 ]);
             }
             trimTextArea();
-            navigate(`/postUpload`);
-            formRef.current.reset();
+            if (currentPath.includes('/postUpload')) {
+                navigate(`/postUpload`);
+            } else if (currentPath.includes('/postEdit')) {
+                navigate(-1);
+            }
         }
     };
 
-    useEffect(() => {
-        !showProduct && productNameRef.current.focus();
-    }, [showProduct]);
+    const storeValid = value => {
+        if (!value && !linkInput) {
+            return '구매처 또는 구매링크를 입력하세요.';
+        } else if (!selectedPlace) {
+            return '구매 장소를 선택해주세요.';
+        } else {
+            // 다른 조건에 맞으면 null을 리턴
+            return null;
+        }
+    };
 
-    useEffect(() => {
-        categoryRef.current.value = defaultProductItemDetail
-            ? defaultProductItemDetail.category
-            : '책상';
-        productNameRef.current.value = defaultProductItemDetail
-            ? defaultProductItemDetail.productName
-            : null;
-        priceRef.current.value = defaultProductItemDetail
-            ? defaultProductItemDetail.price
-            : null;
-        storeRef.current.value = defaultProductItemDetail
-            ? defaultProductItemDetail.store
-            : null;
-        linkRef.current.value = defaultProductItemDetail
-            ? defaultProductItemDetail.link
-            : null;
-    }, [defaultProductItemDetail]);
+    const handleSelectedPlace = data => {
+        // data는 AddMap 컴포넌트에서 전달한 선택한 장소의 정보
+        const nullData = data === null;
+        setSelectedPlace(data);
+
+        nullData
+            ? setError('store', { message: '구매 장소를 선택해주세요.' })
+            : clearErrors('store');
+    };
+
+    // 새로운 검색할 때 지도는 사라지고 검색 결과 목록
+    const hadleStoreInput = e => {
+        setSearchKeyword(e.target.value);
+        // selectedPlace가 null이 아닐 때만 setSelectedPlace(null) 호출
+        if (selectedPlace !== null) {
+            setSelectedPlace(null);
+        }
+    };
 
     return (
-        <S.RegisterForm ref={formRef} onSubmit={submitProduct}>
+        <S.RegisterForm onSubmit={handleSubmit(submitProduct)}>
             <fieldset>
                 <SelectInput
-                    label="카테고리"
-                    inputRef={categoryRef}
-                    warning={warnCategory}
-                    options={options}
-                    readonly={showProduct}
+                    label={'카테고리'}
+                    id={'category'}
+                    error={errors.category}
+                    selectOptions={options}
+                    register={register}
+                    registerOptions={{
+                        required: '카테고리를 입력하세요.',
+                    }}
                 />
-
-                {warnCategory && <WarningMsg msg={'필수 정보를 입력하세요.'} />}
-
                 <Input
-                    label="상품명"
-                    inputRef={productNameRef}
-                    warning={warnProductName}
-                    readonly={showProduct}
+                    label={'상품명'}
+                    id={'productName'}
+                    error={errors.productName}
+                    register={register}
+                    registerOptions={{
+                        required: '상품명을 입력하세요.',
+                    }}
                 />
-                {warnProductName && (
-                    <WarningMsg msg={'필수 정보를 입력하세요.'} />
-                )}
-
                 <Input
-                    label="구매가격"
                     type={'number'}
-                    inputRef={priceRef}
-                    warning={warnPrice}
-                    readonly={showProduct}
-                    step={100}
+                    label={'구매가격'}
+                    id={'price'}
+                    error={errors.price}
+                    register={register}
+                    registerOptions={{
+                        required: '구매 가격을 입력하세요.',
+                        min: 0,
+                    }}
+                    step={10}
                 />
-                {warnPrice && <WarningMsg msg={'필수 정보를 입력하세요.'} />}
-
-                <Input
-                    label="구매처"
-                    inputRef={storeRef}
-                    readonly={showProduct}
-                />
-                <Input
-                    label="구매링크"
-                    type={'url'}
-                    inputRef={linkRef}
-                    readonly={showProduct}
-                />
+                {!linkInput && (
+                    <>
+                        <Input
+                            label={'구매처'}
+                            id={'store'}
+                            error={errors.store}
+                            placeholder="장소를 검색하세요"
+                            register={register}
+                            registerOptions={{
+                                validate: storeValid,
+                                onChange: e => hadleStoreInput(e),
+                            }}
+                        />
+                        <AddMap
+                            searchKeyword={searchKeyword}
+                            selectedPlace={selectedPlace}
+                            handleSelectedPlace={handleSelectedPlace}
+                        />
+                    </>
+                )}
+                {!storeInput && (
+                    <Input
+                        type={'url'}
+                        label={'구매링크'}
+                        id={'link'}
+                        error={errors.link}
+                        register={register}
+                        registerOptions={{
+                            validate: value => {
+                                return !value && !storeInput
+                                    ? '구매처 또는 구매링크를 입력하세요.'
+                                    : null;
+                            },
+                        }}
+                    />
+                )}
             </fieldset>
-            {!showProduct && (
-                <S.RegisterButtonBox>
-                    <GradientButton
-                        width={'40%'}
-                        padding={'12px'}
-                        onClick={() => navigate(`/postUpload`)}
-                    >
-                        취소하기
-                    </GradientButton>
-                    <GradientButton gra={'true'} type={'submit'} width={'40%'}>
-                        등록하기
-                    </GradientButton>
-                </S.RegisterButtonBox>
-            )}
+
+            <S.RegisterButtonBox>
+                <GradientButton
+                    width={'40%'}
+                    padding={'12px'}
+                    onClick={() => navigate(-1)}
+                >
+                    취소하기
+                </GradientButton>
+                <GradientButton gra={'true'} type={'submit'} width={'40%'}>
+                    등록하기
+                </GradientButton>
+            </S.RegisterButtonBox>
         </S.RegisterForm>
     );
 };

@@ -13,7 +13,8 @@ export const SlideSection = styled.section`
 export const Category = styled.div`
     width: 54px;
     height: 54px;
-    border: 1px solid ${({ theme }) => theme.border};
+    border: ${({ selected, theme }) =>
+        selected ? `2px solid ${theme.main}` : `1px solid ${theme.border}`};
     border-radius: 50%;
     margin-bottom: 8px;
 
@@ -27,7 +28,6 @@ export const CateName = styled.p`
     margin: auto;
     width: 50px;
     position: relative;
-    /* top: %; */
     text-align: center;
     font-size: 10px;
     color: ${({ theme }) => theme.mainFont};

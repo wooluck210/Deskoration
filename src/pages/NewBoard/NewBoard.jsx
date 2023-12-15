@@ -15,7 +15,6 @@ const NewBoard = () => {
     const location = useLocation();
     const pathName = location.pathname;
     const detailPost = pathName.includes('/detailPost');
-
     const token = sessionStorage.getItem('Token');
 
     const [apiContent, setApiContent] = useState();

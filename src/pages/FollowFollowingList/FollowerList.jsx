@@ -7,6 +7,7 @@ import {
     getFollowerApi,
 } from '../../service/follow_service';
 import usePageHandler from '../../hooks/usePageHandler';
+import { Link } from 'react-router-dom';
 
 const FollowerList = () => {
     const token = sessionStorage.getItem('Token');
@@ -20,23 +21,13 @@ const FollowerList = () => {
         getFollowerApi(token, myAccountName)
             .then(data => {
                 setFollowerData(data);
-                postFollowApi(token, data[0].accountname)
-                    .then(data => {
-                        setFollow(data.profile.isfollow);
-                    })
-                    .catch(error => {
-                        console.error('API 요청 중 오류 발생: ', error);
-                    });
             })
             .catch(error => {
                 console.error('API 요청 중 오류 발생: ', error);
             });
     }, []);
-    useEffect(() => {}, []);
 
     const handleFollowToggle = async accountname => {
-        setFollow(!follow);
-
         const follower = followerData.find(f => f.accountname === accountname);
         if (follower) {
             try {
@@ -65,14 +56,16 @@ const FollowerList = () => {
             <S.FollowerContainer>
                 {followerData.map(data => (
                     <S.FollowerList key={data._id}>
-                        <S.FollowerInfo>
-                            <img
-                                src={data?.image}
-                                className="follower-img"
-                                alt="유저 프로필 이미지"
-                            />
-                            <div>{data?.accountname}</div>
-                        </S.FollowerInfo>
+                        <Link to={`/profile/${data.accountname}`}>
+                            <S.FollowerInfo>
+                                <img
+                                    src={data?.image}
+                                    className="follower-img"
+                                    alt="유저 프로필 이미지"
+                                />
+                                <div>{data?.accountname}</div>
+                            </S.FollowerInfo>
+                        </Link>
                         <GradientButton
                             width={'80px'}
                             onClick={() =>

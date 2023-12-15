@@ -1,47 +1,61 @@
-import React, { useEffect, useState } from 'react';
-import * as S from './Home.styled';
-import logoImg from '../../assets/images/Logo.svg';
-import Article from './Article';
-import Slide from './Slide';
-import usePageHandler from '../../hooks/usePageHandler';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+
 import { getAllPostApi } from '../../service/post_service';
-import CommonLoading from '../Loading/CommonLoading';
+
+import Loader from '../../components/Loading/Loader';
+import Slide from './Slide';
+import Article from './Article';
+
+import usePageHandler from '../../hooks/usePageHandler';
+import logoImg from '../../assets/images/Logo.svg';
 
 const Home = () => {
-    const [articles, setArticles] = useState([]);
-    const [isReady, setIsReady] = useState(false);
     const token = sessionStorage.getItem('Token');
+    const [category, setCategory] = useState('All');
 
-    const tempApi = async token => {
-        try {
-            const result = await getAllPostApi(token);
-            // console.log('API보기2: ', result.posts);
-            const deskoration = result.posts.filter(post =>
-                post.content?.includes('"deskoration"'),
-            );
-            // console.log('deskoration: ', deskoration);
-            setArticles(deskoration); // Set the state with articles containing images
-            setIsReady(true);
-        } catch (error) {
-            console.error('error');
+    usePageHandler('image', logoImg);
+
+    const {
+        data: articles,
+        error,
+        isLoading,
+    } = useQuery({
+        queryKey: ['getAllPosts', token],
+        queryFn: () => getAllPostApi(token),
+        select: data =>
+            category === 'All'
+                ? data?.posts?.filter(post =>
+                      post.content?.includes('"deskoration"'),
+                  )
+                : data?.posts
+                      ?.filter(post => post.content?.includes('"deskoration"'))
+                      .filter(article => {
+                          const content = JSON.parse(article.content);
+                          return content.deskoration.productItems.some(
+                              item => item.detail.category === category,
+                          );
+                      }),
+    });
+
+    if (isLoading) {
+        return <Loader />;
+    }
+
+    if (error) {
+        console.error(error);
+    }
+
+    const handleCategory = selectedCategory => {
+        if (category !== selectedCategory) {
+            setCategory(selectedCategory);
         }
     };
 
-    useEffect(() => {
-        tempApi(token);
-    }, [token]);
-
-    usePageHandler('image', logoImg);
     return (
         <>
-            {!isReady ? (
-                <CommonLoading />
-            ) : (
-                <>
-                    <Slide />
-                    <Article articles={articles} setArticles={setArticles} />
-                </>
-            )}
+            <Slide category={handleCategory} />
+            <Article articles={articles} />
         </>
     );
 };

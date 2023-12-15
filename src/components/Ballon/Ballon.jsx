@@ -7,14 +7,14 @@ const Ballon = ({ productItem, deleteProduct, itemCount, isDetail }) => {
     const navigate = useNavigate();
     const { id } = useParams();
     const editProduct = () => {
-        navigate(`/postUpload/${productItem.detail.id}`, {
-            state: { defaultProductItem: productItem },
+        navigate(`${productItem.detail.id}`, {
+            state: { editProduct: productItem },
         });
     };
 
     const showProduct = itemCount => {
         navigate(`/detailPost/${id}/${itemCount}`, {
-            state: { defaultProductItem: productItem },
+            state: { showProduct: productItem },
         });
     };
 

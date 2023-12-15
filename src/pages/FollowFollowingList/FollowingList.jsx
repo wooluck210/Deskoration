@@ -7,6 +7,7 @@ import {
     deleteFollowApi,
 } from '../../service/follow_service';
 import usePageHandler from '../../hooks/usePageHandler';
+import { Link } from 'react-router-dom';
 
 const FollowingList = () => {
     const token = sessionStorage.getItem('Token');
@@ -61,14 +62,16 @@ const FollowingList = () => {
             <S.FollowingContainer>
                 {followingData?.map(data => (
                     <S.FollowingList key={data._id}>
-                        <S.FollowingInfo>
-                            <img
-                                src={data?.image}
-                                className="follower-img"
-                                alt="유저 프로필 이미지"
-                            />
-                            <div>{data?.accountname}</div>
-                        </S.FollowingInfo>
+                        <Link to={`/profile/${data.accountname}`}>
+                            <S.FollowingInfo>
+                                <img
+                                    src={data?.image}
+                                    className="follower-img"
+                                    alt="유저 프로필 이미지"
+                                />
+                                <div>{data?.accountname}</div>
+                            </S.FollowingInfo>
+                        </Link>
                         <GradientButton
                             width={'80px'}
                             onClick={() =>

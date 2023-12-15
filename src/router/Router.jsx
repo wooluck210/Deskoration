@@ -1,6 +1,7 @@
 import { React, lazy, Suspense } from 'react';
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import PostUpdateForm from '../pages/NewBoard/UpdateBoard';
 
 const PublicRoutePage = lazy(() => import('./PublicRoute'));
 
@@ -14,6 +15,12 @@ const FollowerListPage = lazy(() =>
 const FollowingListPage = lazy(() =>
     import('../pages/FollowFollowingList/FollowingList'),
 );
+const UserFollowingListPage = lazy(() =>
+    import('../pages/FollowFollowingList/UserFollowingList'),
+);
+const UserFollowerListPage = lazy(() =>
+    import('../pages/FollowFollowingList/UserFollowerList'),
+);
 
 const PrivateRoutePage = lazy(() => import('./PrivateRoute'));
 
@@ -21,7 +28,10 @@ const DefaultLayoutPage = lazy(() => import('../Layout/DefaultLayout'));
 const HomePage = lazy(() => import('../pages/Home/Home'));
 const FeedPage = lazy(() => import('../pages/Feed/Feed'));
 const PostUploadPage = lazy(() => import('../pages/NewBoard/NewBoard'));
-const DetailPostPage = lazy(() => import('../pages/DetailPost/DetailPost'));
+const DetailPostPage = lazy(() =>
+    import('../pages/PostPage/DetailPostPage/DetailPostPage'),
+);
+const ProductPage = lazy(() => import('../components/ShowProduct/ShowProduct'));
 const ChatListPage = lazy(() =>
     import('../pages/Chat/ChatListPage/ChatListPage'),
 );
@@ -66,11 +76,23 @@ const Router = () => {
                             />
                             <Route
                                 path={'/detailPost/:id/:itemCount'}
-                                element={<PostUploadPage />}
+                                element={<ProductPage />}
+                            />
+                            <Route
+                                path={'/postEdit/:id'}
+                                element={<PostUpdateForm />}
+                            />
+                            <Route
+                                path={'/postEdit/:id/:itemCount'}
+                                element={<PostUpdateForm />}
                             />
                             <Route path={'/chat'} element={<ChatListPage />} />
                             <Route
-                                path={'/chat/:username'}
+                                path={'/chat/:roomId'}
+                                element={<ChatRoomPage />}
+                            />
+                            <Route
+                                path={'/chat/:id'}
                                 element={<ChatRoomPage />}
                             />
                             <Route
@@ -83,6 +105,18 @@ const Router = () => {
                                 path={'/followerList'}
                                 element={<FollowerListPage />}
                             />
+                            <Route
+                                path={'/followingList'}
+                                element={<FollowingListPage />}
+                            />
+                            <Route
+                                path={'/followerList/:username'}
+                                element={<UserFollowerListPage />}
+                            />
+                            <Route
+                                path={'/followingList/:username'}
+                                element={<UserFollowingListPage />}
+                            />
                         </Route>
                     </Route>
                     <Route element={<NoFooterLayoutPage />}>
@@ -94,14 +128,14 @@ const Router = () => {
                             path={'/profileEdit'}
                             element={<ProfileUploadPage />}
                         />
-                        <Route
+                        {/* <Route
                             path={'/followerList'}
                             element={<FollowerListPage />}
                         />
                         <Route
                             path={'/followingList'}
                             element={<FollowingListPage />}
-                        />
+                        /> */}
                         <Route
                             path={'/detailPost/:id'}
                             element={<DetailPostPage />}
