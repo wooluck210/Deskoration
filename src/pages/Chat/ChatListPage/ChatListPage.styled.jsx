@@ -33,17 +33,16 @@ export const SearchBar = styled.div`
     border: none;
     border-radius: 10px;
     display: flex;
-    justify-content: space-around;
+    align-items: center;
     margin-bottom: 10px;
 `;
 
 export const Searchmark = styled.div`
-    margin: auto;
+    padding-right: 10px;
 `;
 
 export const SearchUsernameInput = styled.input`
-    margin: auto;
-    width: 244px;
+    width: 100%;
     height: 24px;
     border: none;
     outline: none;
@@ -57,13 +56,13 @@ export const UserChatList = styled.ul`
 `;
 
 export const UserChatRoom = styled.div`
-    /* width: 310px; */
     height: 70px;
-    /* margin: 0 25px; */
     display: flex;
     align-items: center;
 
     .user-img {
+        min-width: 50px;
+        min-height: 50px;
         width: 50px;
         height: 50px;
         border-radius: 100%;

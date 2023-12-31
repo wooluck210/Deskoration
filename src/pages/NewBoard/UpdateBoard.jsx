@@ -1,22 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import * as S from './UpdateBoard.styled';
-import { updatePostApi, detialPostApi } from '../../service/post_service';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { updatePostAPI, getDetailPostAPI } from '../../service/post_service';
+
+import usePageHandler from '../../hooks/usePageHandler';
+
 import GradientButton from '../../components/GradientButton/GradientButton';
 import PostUploadForm from './PostUploadForm';
-import usePageHandler from '../../hooks/usePageHandler';
 import RegisterForm from './RegisterForm';
-import { useLocation, useNavigate } from 'react-router-dom';
 
+// baseURL 없앨껀데.. 이거 무엇을 위하여??
+import baseUrl from '../../service/base_url';
+
+import * as S from './UpdateBoard.styled';
+
+// editPost?? 이거 꼭 필요한 component??
 const PostUpdateForm = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const baseURL = 'https://api.mandarin.weniv.co.kr/';
-    const baseUrlLength = baseURL.length;
+    const baseUrlLength = baseUrl.length;
     const pathName = location.pathname;
     const postData = location.state?.postData;
-    const token = sessionStorage.getItem('Token');
+    const postId = postData?.id;
+    const postImg = postData?.image;
     const [updateData, setUpdateData] = useState();
     const [imageURL, setImageURL] = useState('');
+    // 기존 이미지 변경이 없을때, 데이터를 보내줄때 앞에 기본 url이 추가가 되서 이렇게 사용했다.
     const [imageFile, setImageFile] = useState(
         postData?.image.substring(baseUrlLength),
     );
@@ -26,8 +36,6 @@ const PostUpdateForm = () => {
 
     usePageHandler('text', '게시물 수정');
 
-    // console.log(postData.id);
-
     const trimTextArea = () => {
         setTextArea(prev => ({
             ...prev,
@@ -36,25 +44,24 @@ const PostUpdateForm = () => {
         }));
     };
 
+    // To.Herrypi state로 변경
+    const { data: postContentData } = useQuery({
+        queryKey: ['detialPost'],
+        queryFn: () => getDetailPostAPI(postId),
+    });
+
     useEffect(() => {
-        console.log(postData);
-        detialPostApi(postData?.id, token)
-            .then(response => {
-                const resData = JSON.parse(response.post.content);
-                const contentData = resData?.deskoration || {};
-                setImageURL(postData.image || '');
-                setProductItems(contentData.productItems || []);
-                setTextArea({
-                    message: contentData.message || '',
-                    length: contentData.message
-                        ? contentData.message.length
-                        : 0,
-                });
-            })
-            .catch(error => {
-                console.log('error', error);
+        if (postContentData) {
+            const resData = JSON.parse(postContentData.post.content);
+            const contentData = resData?.deskoration || {};
+            setImageURL(postImg || '');
+            setProductItems(contentData.productItems || []);
+            setTextArea({
+                message: contentData.message || '',
+                length: contentData.message ? contentData.message.length : 0,
             });
-    }, [token]);
+        }
+    }, [postContentData, postImg]);
 
     const deleteProduct = itemID => {
         if (window.confirm('상품을 삭제 하겠습니까?')) {
@@ -79,25 +86,22 @@ const PostUpdateForm = () => {
         });
     }, [textArea.message, productItems]);
 
+    const postUpdateMutation = useMutation({
+        mutationFn: ({ postId, updateData, imageFile }) =>
+            updatePostAPI(postId, updateData, imageFile),
+        onSuccess: () => {
+            navigate(-1);
+        },
+    });
+
     const submitPost = async event => {
         event.preventDefault();
-
         try {
             if (!textArea.message || !imageURL) {
                 alert('나의 데스크 셋업 이미지와 설명 칸을 비울 수 없습니다.');
                 return;
             }
-
-            const responseData = await updatePostApi(
-                token,
-                postData?.id,
-                updateData,
-                imageFile,
-            );
-
-            console.log('Post updated successfully:', responseData);
-
-            navigate('/home');
+            postUpdateMutation.mutate({ postId, updateData, imageFile });
         } catch (error) {
             console.error('Error updating post:', error);
         }
@@ -105,7 +109,7 @@ const PostUpdateForm = () => {
 
     return (
         <S.NewBoardContainer>
-            {pathName === `/postEdit/${postData?.id}` ? (
+            {pathName === `/postEdit/${postId}` ? (
                 <form onSubmit={submitPost}>
                     <PostUploadForm
                         productItems={productItems}

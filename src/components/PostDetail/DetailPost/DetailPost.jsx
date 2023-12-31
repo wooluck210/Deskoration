@@ -1,60 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { useDispatch } from 'react-redux';
 import { openAlertModal } from '../../../features/modal/alertModalSlice';
-
 import { deletePostAPI, reportPostAPI } from '../../../service/post_service';
-import { postLikeApi, deleteLikeApi } from '../../../service/like_service';
-
 import { Marker } from '../../Marker/Marker';
 import SocialButton from '../../SocialButton/SocialButton';
 import BottomSheet from '../../BottomSheet/BottomSheet';
+import Like from '../../Like/Like';
 
 import * as S from './DetailPost.styled';
 
-const DetailPost = ({ data, commentData, token, id, setFocus }) => {
+const DetailPost = ({ data, commentData, id, setFocus }) => {
     const dispatch = useDispatch();
-    const [likeData, setLikeData] = useState({
-        isLike: data.post.hearted,
-        likeCount: data.post.heartCount,
-    });
-
     const postData = data?.post;
     const postContent = JSON.parse(data?.post?.content);
-
+    const mutationParams = {
+        id: postData.id,
+    };
     const myId = sessionStorage.getItem('Id');
 
     const navigate = useNavigate();
-
-    // 너도.. useQuery?랑 mutation
-    const handleLike = () => {
-        if (!likeData.isLike) {
-            postLikeApi(id, token)
-                .then(likeResult => {
-                    setLikeData(prev => ({
-                        ...prev,
-                        isLike: true,
-                        likeCount: likeResult.post.heartCount,
-                    }));
-                })
-                .catch(error => {
-                    console.error('error');
-                });
-        } else {
-            deleteLikeApi(id, token)
-                .then(unlikeResult => {
-                    setLikeData(prev => ({
-                        ...prev,
-                        isLike: false,
-                        likeCount: unlikeResult.post.heartCount,
-                    }));
-                })
-                .catch(error => {
-                    console.error('error');
-                });
-        }
-    };
 
     // bottomsheet
     const [isPostBottomSheet, setIsPostBottomSheet] = useState(false);
@@ -77,7 +42,7 @@ const DetailPost = ({ data, commentData, token, id, setFocus }) => {
     const deletePost = e => {
         e.stopPropagation();
         if (window.confirm('이 포스트를 삭제하시겠습니까?')) {
-            deletePostAPI(postData.id, token);
+            deletePostAPI(postData.id);
             navigate(-1);
         }
         handlePostBottomSheet();
@@ -86,18 +51,18 @@ const DetailPost = ({ data, commentData, token, id, setFocus }) => {
     const reportPost = e => {
         e.stopPropagation();
         if (window.confirm('이 포스트를 신고하시겠습니까?')) {
-            reportPostAPI(postData.id, token);
-            dispatch(openAlertModal());
+            reportPostAPI(postData.id);
+            dispatch(openAlertModal('포스트 신고가 완료되었습니다.'));
         }
         handleReportBottomSheet();
     };
 
     return (
         <>
-            <S.DetailPostCotainer>
+            <S.DetailPostContainer>
                 <S.DetailPostMain $isBottomSheet={isPostBottomSheet}>
                     <S.ContentSection>
-                        <div className="post" style={{ position: 'relative' }}>
+                        <div>
                             <img
                                 src={postData?.image}
                                 alt="데스크 셋업 이미지"
@@ -120,11 +85,11 @@ const DetailPost = ({ data, commentData, token, id, setFocus }) => {
 
                         <S.ContentButtonBox>
                             <div>
-                                <SocialButton
-                                    type={'like'}
-                                    onClick={handleLike}
-                                    isLike={likeData.isLike}
-                                    likeCount={likeData.likeCount}
+                                <Like
+                                    queryKey={['getDetailPost', id]}
+                                    isLike={postData.hearted}
+                                    likeCount={postData.heartCount}
+                                    mutationParams={mutationParams}
                                 />
                                 <SocialButton
                                     type={'comment'}
@@ -162,7 +127,7 @@ const DetailPost = ({ data, commentData, token, id, setFocus }) => {
                     children={'신고하기'}
                     deleteFn={e => reportPost(e)}
                 />
-            </S.DetailPostCotainer>
+            </S.DetailPostContainer>
         </>
     );
 };

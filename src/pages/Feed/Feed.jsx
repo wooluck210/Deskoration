@@ -1,28 +1,29 @@
 import React, { useState } from 'react';
-import * as S from './Feed.styled';
-import usePageHandler from '../../hooks/usePageHandler';
-import { getFeedApi, reportPostAPI } from '../../service/post_service';
-import { useLikeUpdate } from '../../hooks/useLikeUpdate';
 import { Link } from 'react-router-dom';
-import SocialButton from '../../components/SocialButton/SocialButton';
-import BottomSheet from '../../components/BottomSheet/BottomSheet';
-import { useDispatch, useSelector } from 'react-redux';
-import { openAlertModal } from '../../features/modal/alertModalSlice';
-import AlertModal from '../../components/AlertModal/AlertModal';
-import Loader from '../../components/Loading/Loader';
+import { useDispatch } from 'react-redux';
 import { useQuery, useMutation } from '@tanstack/react-query';
+
+import { getFeedAPI, reportPostAPI } from '../../service/post_service';
+
+import { openAlertModal } from '../../features/modal/alertModalSlice';
+
+import usePageHandler from '../../hooks/usePageHandler';
+import SocialButton from '../../components/SocialButton/SocialButton';
+import Loader from '../../components/Loading/Loader';
+import AlertModal from '../../components/AlertModal/AlertModal';
+import Like from '../../components/Like/Like';
+import NotFoundPage from '../404/NotFoundPage';
+import BottomSheet from '../../components/BottomSheet/BottomSheet';
+import NoContents from '../../components/NoContents/NoContents';
+
+import * as S from './Feed.styled';
 
 const Feed = () => {
     const dispatch = useDispatch();
-    const token = sessionStorage.getItem('Token');
-    const queryKey = ['getFeedApi', token];
+    const queryKey = ['getFeed'];
 
     // header dispatch
     usePageHandler('text', '팔로잉 피드');
-
-    // 신고후에 보여줄 alertModal message
-    const [reportMessage, setReportMessage] = useState('');
-    const { isOpen } = useSelector(store => store.alertModal);
 
     // 신고하기를 위한 postId
     const [postId, setPostId] = useState();
@@ -37,28 +38,30 @@ const Feed = () => {
 
     // 신고하기
     const reportMutation = useMutation({
-        mutationFn: ({ postId, token }) => reportPostAPI(postId, token),
+        mutationFn: ({ postId }) => reportPostAPI(postId),
         onSuccess: data => {
             if (data.message === '존재하지 않는 게시글입니다.') {
-                setReportMessage('게시글을 찾을 수 없습니다.');
-                dispatch(openAlertModal());
+                dispatch(openAlertModal('게시글을 찾을 수 없습니다.'));
             } else {
-                setReportMessage('신고가 완료되었습니다.');
-                dispatch(openAlertModal());
+                dispatch(openAlertModal('신고가 완료되었습니다.'));
             }
         },
     });
 
-    const reportPost = (e, postId, token) => {
+    const reportPost = (e, postId) => {
         e.stopPropagation();
-        reportMutation.mutate({ postId, token });
+        reportMutation.mutate({ postId });
         handleReportBottomSheet();
     };
 
     // 피드 데이터 가져오기
-    const { data: feedData, isLoading } = useQuery({
+    const {
+        data: feedData,
+        isLoading,
+        error,
+    } = useQuery({
         queryKey: queryKey,
-        queryFn: () => getFeedApi(token),
+        queryFn: () => getFeedAPI(),
         select: responseData =>
             responseData.posts.map(post => {
                 const content = JSON.parse(post.content);
@@ -71,89 +74,93 @@ const Feed = () => {
             }),
     });
 
-    const likeMutation = useLikeUpdate(queryKey, true);
-    const cancelLikeMutation = useLikeUpdate(queryKey, false);
-
     if (isLoading) {
         return <Loader />;
     }
 
     return (
         <>
-            {feedData.map(post => {
-                const mutationParams = {
-                    id: post.id,
-                    token: token,
-                };
-                return (
-                    <S.FeedContainer key={post.id}>
-                        <S.FeedItemHeader>
-                            <Link to={`/profile/${post.author.accountname}`}>
-                                <S.UserInfoBox>
-                                    <img
-                                        src={post.author.image}
-                                        alt="이미지"
-                                        className="profile-img"
-                                    />
-                                    <div>
-                                        <h4>{post.author.username}</h4>
-                                        <p>{post.author.accountname}</p>
-                                    </div>
-                                </S.UserInfoBox>
-                            </Link>
-                            <button
-                                onClick={() => handleReportBottomSheet(post.id)}
-                            >
-                                <S.MoreIcon />
-                            </button>
-                        </S.FeedItemHeader>
-
-                        <S.FeedDetailBox>
-                            <Link to={`/detailpost/${post.id}`}>
-                                <S.DetailImgBox>
-                                    <img src={post.image} alt="게시글 이미지" />
-                                </S.DetailImgBox>
-                                <S.DetailMsg>
-                                    {post.content.deskoration.message}
-                                </S.DetailMsg>
-                            </Link>
-                            <div>
-                                <SocialButton
-                                    type={'like'}
-                                    onClick={() =>
-                                        !post.hearted
-                                            ? likeMutation.mutate(
-                                                  mutationParams,
-                                              )
-                                            : cancelLikeMutation.mutate(
-                                                  mutationParams,
-                                              )
-                                    }
-                                    isLike={post.hearted}
-                                    likeCount={post.heartCount}
-                                />
-                                <Link to={`/detailpost/${post.id}`}>
-                                    <SocialButton
-                                        type={'comment'}
-                                        commentCount={post.commentCount}
-                                    />
+            {feedData.length > 0 ? (
+                feedData.map(post => {
+                    const mutationParams = {
+                        id: post.id,
+                    };
+                    return (
+                        <S.FeedContainer key={post.id}>
+                            <S.FeedItemHeader>
+                                <Link
+                                    to={`/profile/${post.author.accountname}`}
+                                >
+                                    <S.UserInfoBox>
+                                        <img
+                                            src={post.author.image}
+                                            alt="이미지"
+                                            className="profile-img"
+                                        />
+                                        <div>
+                                            <h4>{post.author.username}</h4>
+                                            <p>{post.author.accountname}</p>
+                                        </div>
+                                    </S.UserInfoBox>
                                 </Link>
-                            </div>
-                            <S.FeedDate>
-                                {`${post.createdAt.year}년 ${post.createdAt.month}월 ${post.createdAt.date}일`}
-                            </S.FeedDate>
-                        </S.FeedDetailBox>
-                    </S.FeedContainer>
-                );
-            })}
+                                <button
+                                    onClick={() =>
+                                        handleReportBottomSheet(post.id)
+                                    }
+                                >
+                                    <S.MoreIcon />
+                                </button>
+                            </S.FeedItemHeader>
+
+                            <S.FeedDetailBox>
+                                <Link to={`/detailpost/${post.id}`}>
+                                    <S.DetailImgBox>
+                                        <img
+                                            src={post.image}
+                                            alt="게시글 이미지"
+                                        />
+                                    </S.DetailImgBox>
+                                    <S.DetailMsg>
+                                        {post.content.deskoration.message}
+                                    </S.DetailMsg>
+                                </Link>
+                                <div>
+                                    <Like
+                                        queryKey={queryKey}
+                                        isLike={post.hearted}
+                                        likeCount={post.heartCount}
+                                        mutationParams={mutationParams}
+                                    />
+                                    <Link to={`/detailpost/${post.id}`}>
+                                        <SocialButton
+                                            type={'comment'}
+                                            commentCount={post.commentCount}
+                                        />
+                                    </Link>
+                                </div>
+                                <S.FeedDate>
+                                    {`${post.createdAt.year}년 ${post.createdAt.month}월 ${post.createdAt.date}일`}
+                                </S.FeedDate>
+                            </S.FeedDetailBox>
+                        </S.FeedContainer>
+                    );
+                })
+            ) : (
+                <NoContents
+                    mainTxt={'아직 표시할 게시글이 없습니다!'}
+                    subTxt={'다른 유저를 팔로우 해보세요.'}
+                />
+            )}
+
             <BottomSheet
                 isBottomSheet={isReportBottomSheet}
                 hadleBottomSheet={handleReportBottomSheet}
                 oneButton
                 children={'신고하기'}
-                deleteFn={e => reportPost(e, postId, token)}
+                deleteFn={e => reportPost(e, postId)}
             />
-            {isOpen && <AlertModal alert={reportMessage} />}
+            <AlertModal />
+            {error && <NotFoundPage />}
         </>
     );
 };

@@ -1,49 +1,53 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 
-import { getAllPostApi } from '../../service/post_service';
+import { getAllPostAPI } from '../../service/post_service';
 
 import Loader from '../../components/Loading/Loader';
 import Slide from './Slide';
 import Article from './Article';
+import NotFoundPage from '../404/NotFoundPage';
 
 import usePageHandler from '../../hooks/usePageHandler';
 import logoImg from '../../assets/images/Logo.svg';
 
 const Home = () => {
-    const token = sessionStorage.getItem('Token');
     const [category, setCategory] = useState('All');
 
     usePageHandler('image', logoImg);
 
     const {
         data: articles,
-        error,
+        fetchNextPage,
         isLoading,
-    } = useQuery({
-        queryKey: ['getAllPosts', token],
-        queryFn: () => getAllPostApi(token),
-        select: data =>
-            category === 'All'
-                ? data?.posts?.filter(post =>
+        error,
+    } = useInfiniteQuery({
+        queryKey: ['getAllPosts'],
+        queryFn: ({ pageParam = 0 }) => getAllPostAPI(pageParam),
+        select: data => {
+            const allPosts = data.pages.flatMap(page => page.posts);
+            return category === 'All'
+                ? allPosts.filter(post =>
                       post.content?.includes('"deskoration"'),
                   )
-                : data?.posts
-                      ?.filter(post => post.content?.includes('"deskoration"'))
+                : allPosts
+                      .filter(post => post.content?.includes('"deskoration"'))
                       .filter(article => {
                           const content = JSON.parse(article.content);
                           return content.deskoration.productItems.some(
                               item => item.detail.category === category,
                           );
-                      }),
+                      });
+        },
+        getNextPageParam: (lastPage, allPages) => {
+            const morePagesExist = lastPage?.posts?.length === 200;
+            if (!morePagesExist) return false;
+            return allPages.length * 200;
+        },
     });
 
     if (isLoading) {
         return <Loader />;
-    }
-
-    if (error) {
-        console.error(error);
     }
 
     const handleCategory = selectedCategory => {
@@ -55,7 +59,8 @@ const Home = () => {
     return (
         <>
             <Slide category={handleCategory} />
-            <Article articles={articles} />
+            <Article articles={articles} fetchNextPage={fetchNextPage} />
+            {error && <NotFoundPage />}
         </>
     );
 };

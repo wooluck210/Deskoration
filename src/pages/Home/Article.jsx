@@ -1,39 +1,39 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
+import useScroll from '../../hooks/useScroll';
 import * as S from './Article.styled';
+import { useLocation } from 'react-router-dom';
 
-const Article = ({ articles }) => {
-    const [loading, setLoading] = useState(false);
-    const sectionRef = useRef(null); // S.Section에 대한 참조 생성
-    const token = sessionStorage.getItem('Token');
+const Article = ({ articles, fetchNextPage }) => {
+    const loaderRef = useScroll(fetchNextPage);
 
-    useEffect(() => {
-        const handleScroll = () => {
-            const { scrollTop, scrollHeight, clientHeight } =
-                sectionRef.current;
-            if (
-                Math.ceil(scrollTop + clientHeight) >= scrollHeight &&
-                !loading
-            ) {
-                // loadMoreArticles();
-            }
-        };
-
-        const sectionElement = sectionRef.current;
-        sectionElement.addEventListener('scroll', handleScroll);
-        return () => sectionElement.removeEventListener('scroll', handleScroll);
-    }, [loading]);
+    const location = useLocation();
+    const isProfile = location.pathname.includes('/profile');
 
     return (
         <>
-            <S.Section ref={sectionRef}>
-                {articles.map(article => (
-                    <Link key={article._id} to={`/detailPost/${article._id}`}>
+            <S.Section $isProfile={isProfile}>
+                {articles?.map(article => (
+                    <Link
+                        key={
+                            article._id !== undefined ? article._id : article.id
+                        }
+                        to={
+                            article._id !== undefined
+                                ? `/detailPost/${article._id}`
+                                : `/detailPost/${article.id}`
+                        }
+                    >
                         <S.Article src={article.image}></S.Article>
                     </Link>
                 ))}
+                {fetchNextPage && (
+                    <div
+                        ref={loaderRef}
+                        style={{ height: '1px', width: '100%' }}
+                    />
+                )}
             </S.Section>
-            {loading && <div>Loading...</div>}
         </>
     );
 };
