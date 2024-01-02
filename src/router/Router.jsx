@@ -1,6 +1,5 @@
 import { React, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import PostUpdateForm from '../pages/NewBoard/UpdateBoard';
 const PublicRoutePage = lazy(() => import('./PublicRoute'));
 const UserLayoutPage = lazy(() => import('../pages/User/User'));
 const LoginPage = lazy(() => import('../pages/User/Login'));
@@ -11,12 +10,6 @@ const FollowerListPage = lazy(() =>
 );
 const FollowingListPage = lazy(() =>
     import('../pages/FollowFollowingList/FollowingList'),
-);
-const UserFollowingListPage = lazy(() =>
-    import('../pages/FollowFollowingList/UserFollowingList'),
-);
-const UserFollowerListPage = lazy(() =>
-    import('../pages/FollowFollowingList/UserFollowerList'),
 );
 const PrivateRoutePage = lazy(() => import('./PrivateRoute'));
 const DefaultLayoutPage = lazy(() => import('../Layout/DefaultLayout'));
@@ -74,11 +67,11 @@ const Router = () => {
                             />
                             <Route
                                 path={'/postEdit/:id'}
-                                element={<PostUpdateForm />}
+                                element={<PostUploadPage />}
                             />
                             <Route
                                 path={'/postEdit/:id/:itemCount'}
-                                element={<PostUpdateForm />}
+                                element={<PostUploadPage />}
                             />
                             <Route path={'/chat'} element={<ChatListPage />} />
                             <Route
@@ -105,11 +98,11 @@ const Router = () => {
                             />
                             <Route
                                 path={'/followerList/:username'}
-                                element={<UserFollowerListPage />}
+                                element={<FollowerListPage />}
                             />
                             <Route
                                 path={'/followingList/:username'}
-                                element={<UserFollowingListPage />}
+                                element={<FollowingListPage />}
                             />
                         </Route>
                     </Route>
